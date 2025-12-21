@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Host</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&display=swap" rel="stylesheet">
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+
+<body>
+    <div class="shape shape-1"></div>
+    <div class="shape shape-2"></div>
+
+    <div class="container">
+        <!-- LOBBY SCREEN -->
+        <div id="lobby-screen" class="glass-card">
+            <h2>Join with PIN</h2>
+            <div id="game-pin" class="pin-display">...</div>
+
+            <div id="qrcode"></div>
+            <p>Or scan to join!</p>
+
+            <div id="player-count">Players: 0</div>
+
+            <button id="start-btn" class="btn hidden">Start Game</button>
+
+            <div id="players-list" class="player-list">
+                <!-- Chips go here -->
+            </div>
+        </div>
+
+        <!-- GAME SCREEN -->
+        <div id="game-screen" class="glass-card hidden" style="max-width: 800px;">
+            <div class="header">
+                <span id="q-number">Question 1/5</span>
+                <span id="timer" style="float: right; color: var(--accent-color); font-weight: bold;">20s</span>
+            </div>
+
+            <img id="q-image" src="" alt="Question Image"
+                style="max-width: 100%; max-height: 300px; border-radius: 10px; margin: 10px 0; display: none;">
+            <h1 id="question-text" class="question-text">Loading question...</h1>
+
+            <div class="stats">
+                <h2>Answers: <span id="answer-count">0</span> / <span id="total-players">0</span></h2>
+            </div>
+        </div>
+
+        <!-- RESULTS SCREEN -->
+        <div id="results-screen" class="glass-card hidden">
+            <h1 id="result-title">Result</h1>
+            <p id="correct-answer-display"></p>
+
+            <div id="leaderboard">
+                <!-- Leaderboard items -->
+            </div>
+
+            <button id="next-btn" class="btn">Next Question</button>
+        </div>
+    </div>
+
+    <script src="js/theme.js"></script>
+    <script>
+        const socket = io();
+        let gamePin = null;
+
+        // Elements
+        const lobbyScreen = document.getElementById('lobby-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const resultsScreen = document.getElementById('results-screen');
+        const pinDisplay = document.getElementById('game-pin');
+        const startBtn = document.getElementById('start-btn');
+        const playersList = document.getElementById('players-list');
+        const nextBtn = document.getElementById('next-btn');
+
+        // Initialize Host
+        // Safety: Warn before leaving
+        window.addEventListener('beforeunload', (e) => {
+            e.preventDefault();
+            e.returnValue = '';
+        });
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const isCustom = urlParams.get('custom') === 'true';
+        let customQuestions = null;
+
+        if (isCustom) {
+            try {
+                customQuestions = JSON.parse(localStorage.getItem('customQuiz'));
+            } catch (e) {
+                console.error("Failed to load custom quiz", e);
+            }
+        }
+
+        socket.emit('createGame', { questions: customQuestions });
+
+        socket.on('gameCreated', (data) => {
+            gamePin = data.pin;
+            pinDisplay.textContent = gamePin;
+
+            // Generate QR Code
+            const joinUrl = `${window.location.protocol}//${window.location.host}/play?pin=${gamePin}`;
+            new QRCode(document.getElementById("qrcode"), {
+                text: joinUrl,
+                width: 128,
+                height: 128
+            });
+        });
+
+        socket.on('playerJoined', (data) => {
+            // Deprecated? using playerListUpdate instead
+        });
+
+        socket.on('playerListUpdate', (players) => {
+            playersList.innerHTML = '';
+            document.getElementById('player-count').textContent = `Players: ${players.length}`;
+
+            players.forEach(p => {
+                const chip = document.createElement('div');
+                chip.className = 'player-chip';
+                chip.textContent = p.name;
+                playersList.appendChild(chip);
+            });
+
+            if (players.length > 0) {
+                startBtn.classList.remove('hidden');
+            }
+        });
+
+        startBtn.addEventListener('click', () => {
+            socket.emit('startGame');
+            lobbyScreen.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+        });
+
+        socket.on('newQuestion', (data) => {
+            resultsScreen.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+
+            document.getElementById('question-text').textContent = data.question;
+
+            const imgEl = document.getElementById('q-image');
+            if (data.image) {
+                imgEl.src = data.image;
+                imgEl.style.display = 'block';
+            } else {
+                imgEl.style.display = 'none';
+            }
+
+            document.getElementById('q-number').textContent = `Question ${data.number}/${data.total}`;
+            document.getElementById('answer-count').textContent = '0';
+
+            // Start Timer (visual only, server handles real timeout)
+            let timeLeft = data.time;
+            const timerEl = document.getElementById('timer');
+            timerEl.textContent = timeLeft + 's';
+
+            const timer = setInterval(() => {
+                timeLeft--;
+                timerEl.textContent = timeLeft + 's';
+                if (timeLeft <= 0) clearInterval(timer);
+            }, 1000);
+        });
+
+        socket.on('answersUpdate', (data) => {
+            document.getElementById('answer-count').textContent = data.count;
+            document.getElementById('total-players').textContent = data.total;
+        });
+
+        socket.on('questionResult', (data) => {
+            gameScreen.classList.add('hidden');
+            resultsScreen.classList.remove('hidden');
+
+            document.getElementById('result-title').textContent = "Round Over!";
+
+            const lb = document.getElementById('leaderboard');
+            lb.innerHTML = '';
+            data.leaderboard.forEach((p, index) => {
+                const item = document.createElement('div');
+                item.className = 'leaderboard-item';
+                item.innerHTML = `
+                    <span class="rank">#${index + 1}</span>
+                    <span class="name">${p.name}</span>
+                    <span class="score">${p.score} pts</span>
+                `;
+                lb.appendChild(item);
+            });
+        });
+
+        socket.on('gameOver', (leaderboard) => {
+            resultsScreen.classList.remove('hidden');
+            document.getElementById('result-title').textContent = "GAME OVER";
+            nextBtn.classList.add('hidden');
+        });
+
+        nextBtn.addEventListener('click', () => {
+            socket.emit('nextQuestion');
+        });
+
+    </script>
+</body>
+
+</html>

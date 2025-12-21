@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Player</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&display=swap" rel="stylesheet">
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body {
+            user-select: none;
+            /* Block text selection */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="shape shape-1"></div>
+    <div class="shape shape-2"></div>
+
+    <div class="container">
+        <!-- JOIN SCREEN -->
+        <div id="join-screen" class="glass-card">
+            <h2>Join Game (v2)</h2>
+            <input type="number" id="pin-input" placeholder="Game PIN" />
+            <input type="text" id="name-input" placeholder="Nickname" maxlength="50" />
+            <button id="join-btn" class="btn">Enter</button>
+        </div>
+
+        <!-- WAITING SCREEN -->
+        <div id="wait-screen" class="glass-card hidden">
+            <h2>You're in!</h2>
+            <p>See your name on the big screen?</p>
+            <div class="loader">Waiting for host...</div>
+        </div>
+
+        <!-- GAME SCREEN -->
+        <div id="game-screen" class="glass-card hidden" style="width: 100%; max-width: 600px;">
+            <div id="question-header">
+                <span id="q-number">Q1</span>
+                <span id="timer" style="float: right; color: var(--accent-color); font-weight: bold;"></span>
+            </div>
+            <img id="q-image" src="" alt=""
+                style="max-width: 100%; border-radius: 8px; margin-bottom: 10px; display: none;">
+            <h2 id="q-text" style="font-size: 1.5rem; margin-bottom: 20px;"></h2>
+
+            <div id="options-container" class="options-grid">
+                <!-- Options buttons -->
+            </div>
+        </div>
+
+        <!-- FEEDBACK SCREEN -->
+        <div id="feedback-screen" class="glass-card hidden">
+            <h1 id="feedback-text">Answer Sent!</h1>
+            <p id="feedback-sub">Waiting for result...</p>
+        </div>
+    </div>
+
+    <script src="js/theme.js"></script>
+    <script>
+        const socket = io();
+        let timerInterval;
+
+        // Anti-Cheat: Prevent Context Menu (Right Click)
+        document.addEventListener('contextmenu', event => event.preventDefault());
+
+        // Safety: Warn before leaving page (reload/back)
+        window.addEventListener('beforeunload', (e) => {
+            // Only warn if in a game (gameScreen is visible OR waitScreen is visible)
+            if (!document.getElementById('join-screen').classList.contains('hidden')) return;
+
+            e.preventDefault();
+            e.returnValue = ''; // Standard browser prompt triggering
+        });
+
+        // Screens
+        const joinScreen = document.getElementById('join-screen');
+        const waitScreen = document.getElementById('wait-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const feedbackScreen = document.getElementById('feedback-screen');
+
+        // Logic to pre-fill PIN from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlPin = urlParams.get('pin');
+        if (urlPin) {
+            document.getElementById('pin-input').value = urlPin;
+        }
+
+        document.getElementById('join-btn').addEventListener('click', () => {
+            const pin = document.getElementById('pin-input').value;
+            const name = document.getElementById('name-input').value;
+
+            if (pin && name) {
+                socket.emit('joinGame', { pin, name });
+            }
+        });
+
+        socket.on('joined', (data) => {
+            joinScreen.classList.add('hidden');
+            waitScreen.classList.remove('hidden');
+        });
+
+        socket.on('error', (msg) => {
+            alert(msg);
+        });
+
+        socket.on('newQuestion', (data) => {
+            waitScreen.classList.add('hidden');
+            feedbackScreen.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+
+            document.getElementById('q-text').textContent = data.question;
+
+            // Timer Logic
+            const timerEl = document.getElementById('timer');
+            let timeLeft = data.time;
+            timerEl.textContent = timeLeft + 's';
+
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerEl.textContent = timeLeft + 's';
+                if (timeLeft <= 0) clearInterval(timerInterval);
+            }, 1000);
+
+            const imgEl = document.getElementById('q-image');
+            if (data.image) {
+                imgEl.src = data.image;
+                imgEl.style.display = 'block';
+            } else {
+                imgEl.style.display = 'none';
+            }
+
+            const container = document.getElementById('options-container');
+            container.innerHTML = '';
+
+            data.options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.textContent = opt;
+                btn.onclick = () => submitAnswer(index);
+                container.appendChild(btn);
+            });
+        });
+
+        function submitAnswer(index) {
+            if (timerInterval) clearInterval(timerInterval);
+            socket.emit('submitAnswer', { answer: index });
+            gameScreen.classList.add('hidden');
+
+            const fb = document.getElementById('feedback-screen');
+            fb.classList.remove('hidden');
+            document.getElementById('feedback-text').textContent = "Locked In!";
+            document.getElementById('feedback-sub').textContent = "Good luck!";
+        }
+
+        socket.on('questionResult', (data) => {
+            document.getElementById('feedback-text').textContent = "Round Over";
+            document.getElementById('feedback-sub').textContent = "Check the host screen for scores.";
+        });
+
+        socket.on('gameOver', () => {
+            document.getElementById('feedback-text').textContent = "GAME OVER";
+            document.getElementById('feedback-sub').textContent = "Thanks for playing!";
+            feedbackScreen.classList.remove('hidden');
+            gameScreen.classList.add('hidden');
+        });
+
+    </script>
+</body>
+
+</html>
