@@ -36,7 +36,8 @@ class GameState {
             id: socketId,
             name: name,
             score: 0,
-            streak: 0
+            streak: 0,
+            totalTimeTaken: 0
         };
         this.players[socketId] = { pin, name }; // Quick lookup
         return { success: true, game };

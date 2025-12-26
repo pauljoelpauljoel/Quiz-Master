@@ -163,18 +163,16 @@ io.on('connection', (socket) => {
         for (const [playerId, data] of Object.entries(roundAnswers)) {
             const player = game.players[playerId];
             if (player && parseInt(data.answer) === parseInt(correctAns)) {
-                // Base score + Time Bonus
-                // Bonus = (1 - time/totalTime) * (BaseScore / 2)
-                const totalTime = game.questions[questionIdx].time;
+                // Base score only (no time bonus)
                 const basePoints = game.questions[questionIdx].points || 1;
-                const maxBonus = Math.floor(basePoints / 2);
-
-                const bonus = Math.max(0, Math.floor((1 - (data.timeTaken / totalTime)) * maxBonus));
-                const points = basePoints + bonus;
+                const points = basePoints;
 
                 player.score += points;
                 player.streak++;
                 player.lastPoints = points;
+
+                // Track total time for tie-breaker
+                player.totalTimeTaken = (player.totalTimeTaken || 0) + data.timeTaken;
             } else if (player) {
                 player.streak = 0;
                 player.lastPoints = 0;
@@ -191,7 +189,14 @@ io.on('connection', (socket) => {
 
     function calculateLeaderboard(game) {
         return Object.values(game.players)
-            .sort((a, b) => b.score - a.score);
+            .sort((a, b) => {
+                // Primary: Score (Desc)
+                if (b.score !== a.score) {
+                    return b.score - a.score;
+                }
+                // Secondary: Total Time (Asc) - Faster is better
+                return (a.totalTimeTaken || 0) - (b.totalTimeTaken || 0);
+            });
     }
 });
 
