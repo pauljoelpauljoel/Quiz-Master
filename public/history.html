@@ -64,16 +64,7 @@
 
                     const item = document.createElement('div');
                     item.className = 'history-item';
-                    item.style.cssText = `
-                        background: rgba(255, 255, 255, 0.05);
-                        padding: 20px;
-                        border-radius: 15px;
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                        cursor: pointer;
-                        transition: transform 0.2s;
-                    `;
+                    // item.style.cssText removed - using class .history-item in style.css
                     item.innerHTML = `
                         <div>
                             <h3 style="margin: 0;">${quiz.title}</h3>
@@ -87,8 +78,7 @@
                         </div>
                     `;
 
-                    item.addEventListener('mouseenter', () => item.style.background = 'rgba(255, 255, 255, 0.1)');
-                    item.addEventListener('mouseleave', () => item.style.background = 'rgba(255, 255, 255, 0.05)');
+                    // Hover handled by CSS
 
                     // Host Button
                     item.querySelector('.host-btn').addEventListener('click', (e) => {

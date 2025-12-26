@@ -312,3 +312,107 @@ input:focus {
 .hidden {
     display: none !important;
 }
+
+/* Responsive Design */
+@media (max-width: 768px) {
+
+    /* Global Mobile Adjustments */
+    .container {
+        padding: 5px;
+    }
+
+    h1 {
+        font-size: 2rem;
+    }
+
+    .glass-card {
+        padding: 20px;
+        width: 95%;
+    }
+
+    /* Lobby & Game Screen Mobile */
+    .pin-display {
+        font-size: 3rem;
+        letter-spacing: 5px;
+    }
+
+    .options-grid {
+        grid-template-columns: 1fr;
+        /* Stack options on mobile */
+        gap: 10px;
+    }
+
+    .option-btn {
+        padding: 20px;
+        font-size: 1.2rem;
+    }
+
+    .btn {
+        width: 100%;
+        /* Full width buttons for easier tapping */
+        margin: 5px 0;
+    }
+
+    .question-text {
+        font-size: 1.5rem;
+    }
+
+    /* Adjust leaderboard for mobile */
+    .leaderboard-item {
+        padding: 10px;
+        font-size: 0.9rem;
+    }
+
+    .rank {
+        font-size: 1.2rem;
+        width: 30px;
+    }
+}
+
+@media (min-width: 1024px) {
+
+    /* Laptop/Desktop Optimizations */
+    .container {
+        max-width: 1400px;
+    }
+
+    .glass-card {
+        max-width: 900px;
+        /* Better use of screen real estate on laptops */
+    }
+
+    /* Keep the lobby joining card compact if it has a specific ID */
+    #lobby-screen {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+}
+
+/* History Item Styles */
+.history-item {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 20px;
+    border-radius: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.2s, background 0.2s;
+}
+
+.history-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+@media (max-width: 768px) {
+    .history-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .history-item>div:last-child {
+        width: 100%;
+        justify-content: space-between;
+    }
+}

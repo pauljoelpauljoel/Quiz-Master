@@ -24,6 +24,10 @@ class GameState {
         if (!game) return { error: "Game not found" };
         if (game.status !== 'lobby') return { error: "Game already started" };
 
+
+
+
+
         // Check if name exists
         const existingPlayer = Object.values(game.players).find(p => p.name === name);
         if (existingPlayer) return { error: "Name taken" };

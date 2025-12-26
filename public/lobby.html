@@ -9,6 +9,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&display=swap" rel="stylesheet">
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 </head>
 
 <body>
@@ -45,7 +47,11 @@
             <h1 id="question-text" class="question-text">Loading question...</h1>
 
             <div class="stats">
-                <h2>Answers: <span id="answer-count">0</span> / <span id="total-players">0</span></h2>
+                <h2>
+                    <span style="color: #4CAF50;">Answered: <span id="answer-count">0</span></span>
+                    <span style="margin: 0 10px;">|</span>
+                    <span style="color: #FF5252;">Waiting: <span id="waiting-count">0</span></span>
+                </h2>
             </div>
         </div>
 
@@ -58,6 +64,8 @@
                 <!-- Leaderboard items -->
             </div>
 
+            <button id="download-btn" class="btn hidden" style="background: #2196F3; margin-right: 10px;">Download
+                Results (PDF)</button>
             <button id="next-btn" class="btn">Next Question</button>
         </div>
     </div>
@@ -167,7 +175,9 @@
 
         socket.on('answersUpdate', (data) => {
             document.getElementById('answer-count').textContent = data.count;
-            document.getElementById('total-players').textContent = data.total;
+            // Calculate waiting
+            const waiting = data.total - data.count;
+            document.getElementById('waiting-count').textContent = waiting;
         });
 
         socket.on('questionResult', (data) => {
@@ -194,7 +204,59 @@
             resultsScreen.classList.remove('hidden');
             document.getElementById('result-title').textContent = "GAME OVER";
             nextBtn.classList.add('hidden');
+
+            // Show Download Button
+            const downloadBtn = document.getElementById('download-btn');
+            downloadBtn.classList.remove('hidden');
+            downloadBtn.onclick = () => downloadLeaderboardPDF(leaderboard);
+
+            // Render FULL Leaderboard
+            const lb = document.getElementById('leaderboard');
+            lb.innerHTML = '';
+            leaderboard.forEach((p, index) => {
+                const item = document.createElement('div');
+                item.className = 'leaderboard-item';
+                item.innerHTML = `
+                    <span class="rank">#${index + 1}</span>
+                    <span class="name">${p.name}</span>
+                    <span class="score">${p.score} pts</span>
+                `;
+                lb.appendChild(item);
+            });
         });
+
+        function downloadLeaderboardPDF(leaderboard) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            // Title
+            doc.setFontSize(20);
+            doc.text("Quiz Results", 105, 20, { align: "center" });
+
+            // Date
+            doc.setFontSize(12);
+            doc.text(`Date: ${new Date().toLocaleString()}`, 105, 30, { align: "center" });
+
+            // Table Data
+            const tableData = leaderboard.map((p, index) => [
+                index + 1,
+                p.name,
+                p.score
+            ]);
+
+            // Create Table
+            doc.autoTable({
+                head: [['Rank', 'Name', 'Score']],
+                body: tableData,
+                startY: 40,
+                theme: 'grid',
+                headStyles: { fillColor: [66, 66, 66] },
+                styles: { fontSize: 12, cellPadding: 3 }
+            });
+
+            // Save
+            doc.save("quiz-leaderboard.pdf");
+        }
 
         nextBtn.addEventListener('click', () => {
             socket.emit('nextQuestion');

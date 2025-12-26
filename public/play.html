@@ -160,6 +160,27 @@
         }
 
         socket.on('questionResult', (data) => {
+            // Force show feedback screen (hide game in case they were still deciding)
+            gameScreen.classList.add('hidden');
+            feedbackScreen.classList.remove('hidden');
+
+            // If we are already here from submitting, text is "Round Over"
+            // If we are here from timeout (was on gameScreen), text should be "Time's Up!"
+            // We can check if "Locked In" is currently shown. 
+            // Actually, simpler: Just overwrite.
+            // If they answered, they are already on feedback screen with "Locked In" -> change to "Round Over"
+            // If they didn't answer, they are on game screen -> change to "Time's Up"
+
+            // However, since we just hid gameScreen and showed feedbackScreen unconditionally:
+            // Let's just set a generic message or check state?
+            // "Round Over" is safe. "Time's Up" is more specific for timeout.
+
+            // A simple way to check if they answered is checking if feedbackScreen was ALREADY visible.
+            // But we just toggled it. Let's rely on text content or a flag?
+            // Actually, simpler: The server sends the correct answer. 
+            // We can just say "Round Over! Correct: X" (if we want to show it). 
+            // For now, let's just ensure they are not stuck.
+
             document.getElementById('feedback-text').textContent = "Round Over";
             document.getElementById('feedback-sub').textContent = "Check the host screen for scores.";
         });
