@@ -181,8 +181,8 @@
             // We can just say "Round Over! Correct: X" (if we want to show it). 
             // For now, let's just ensure they are not stuck.
 
-            document.getElementById('feedback-text').textContent = "Round Over";
-            document.getElementById('feedback-sub').textContent = "Check the host screen for scores.";
+            document.getElementById('feedback-text').textContent = "Waiting for next question...";
+            document.getElementById('feedback-sub').textContent = "";
         });
 
         socket.on('gameOver', () => {

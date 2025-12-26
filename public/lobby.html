@@ -68,6 +68,12 @@
                 Results (PDF)</button>
             <button id="next-btn" class="btn">Next Question</button>
         </div>
+
+        <!-- GET READY SCREEN -->
+        <div id="get-ready-screen" class="glass-card hidden" style="text-align: center;">
+            <h1 style="font-size: 3rem; margin-bottom: 20px;">Get Ready!</h1>
+            <div id="countdown-display" style="font-size: 6rem; font-weight: bold; color: var(--accent-color);">3</div>
+        </div>
     </div>
 
     <script src="js/theme.js"></script>
@@ -259,7 +265,25 @@
         }
 
         nextBtn.addEventListener('click', () => {
-            socket.emit('nextQuestion');
+            // Hide Results, Show Get Ready
+            resultsScreen.classList.add('hidden');
+            const getReadyScreen = document.getElementById('get-ready-screen');
+            const countDisplay = document.getElementById('countdown-display');
+            getReadyScreen.classList.remove('hidden');
+
+            let count = 3;
+            countDisplay.textContent = count;
+
+            const interval = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    countDisplay.textContent = count;
+                } else {
+                    clearInterval(interval);
+                    getReadyScreen.classList.add('hidden');
+                    socket.emit('nextQuestion');
+                }
+            }, 1000);
         });
 
     </script>
