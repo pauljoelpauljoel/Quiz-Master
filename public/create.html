@@ -23,8 +23,25 @@
             top: 10px;
             right: 10px;
             background: #ff4757;
-            padding: 5px 10px;
-            font-size: 0.8rem;
+            color: white;
+            border: none;
+            cursor: pointer;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 1rem;
+            padding: 0;
+            z-index: 5;
+            transition: transform 0.2s, background 0.2s;
+        }
+
+        .remove-btn:hover {
+            transform: scale(1.1);
+            background: #ff6b81;
         }
 
         label {
@@ -108,49 +125,61 @@
             });
         }
 
-        function addQuestion() {
+        function addQuestion(data = null) {
             const div = document.createElement('div');
             div.className = 'question-card';
             // Use temporary ID for creation, but updateQuestionNumbers will fix it immediately
             const tempCount = document.querySelectorAll('.question-card').length + 1;
 
+            const qText = data ? data.question.replace(/"/g, '&quot;') : '';
+            const qImage = data ? data.image : '';
+            const qTime = data ? data.time : 20;
+            const qPoints = data ? data.points : 1;
+
+            const opt0 = (data && data.options[0]) ? data.options[0].replace(/"/g, '&quot;') : '';
+            const opt1 = (data && data.options[1]) ? data.options[1].replace(/"/g, '&quot;') : '';
+            const opt2 = (data && data.options[2]) ? data.options[2].replace(/"/g, '&quot;') : '';
+            const opt3 = (data && data.options[3]) ? data.options[3].replace(/"/g, '&quot;') : '';
+
+            const ans = data ? data.answer : 0;
+
             div.innerHTML = `
-                <button class="btn remove-btn" onclick="this.parentElement.remove(); updateQuestionNumbers();">X</button>
+                <button class="remove-btn" onclick="this.parentElement.remove(); updateQuestionNumbers();">X</button>
                 <h3>Question ${tempCount}</h3>
                 
                 <label>Question Text</label>
-                <input type="text" class="q-text" placeholder="e.g. What is 2+2?" required>
+                <input type="text" class="q-text" placeholder="e.g. What is 2+2?" value="${qText}" required>
                 
                 <label>Image URL (Optional)</label>
-                <input type="text" class="q-image" placeholder="https://example.com/image.jpg">
+                <input type="text" class="q-image" placeholder="https://example.com/image.jpg" value="${qImage}">
 
                 <div class="row">
                     <div class="col">
                         <label>Time (seconds)</label>
-                        <input type="number" class="q-time" value="20" min="5">
+                        <input type="number" class="q-time" value="${qTime}" min="5">
                     </div>
                     <div class="col">
                         <label>Points</label>
-                        <input type="number" class="q-points" value="1" step="1" min="0">
+                        <input type="number" class="q-points" value="${qPoints}" step="1" min="0">
                     </div>
                 </div>
 
                 <label>Options (Select the radio button for the correct answer)</label>
                 <div class="row">
-                    <div class="col-radio"><input type="radio" name="correct_${tempCount}" value="0" checked></div>
-                    <div class="col"><input type="text" class="q-opt-0" placeholder="Option 1" required></div>
+                    <div class="col-radio"><input type="radio" name="correct_${tempCount}" value="0" ${ans === 0 ? 'checked' : ''}></div>
+                    <div class="col"><input type="text" class="q-opt-0" placeholder="Option 1" value="${opt0}" required></div>
                 </div>
                 <div class="row">
-                    <div class="col-radio"><input type="radio" name="correct_${tempCount}" value="1"></div>
-                    <div class="col"><input type="text" class="q-opt-1" placeholder="Option 2" required></div>
+                    <div class="col-radio"><input type="radio" name="correct_${tempCount}" value="1" ${ans === 1 ? 'checked' : ''}></div>
+                    <div class="col"><input type="text" class="q-opt-1" placeholder="Option 2" value="${opt1}" required></div>
                 </div>
                 <div class="row">
-                    <div class="col-radio"><input type="radio" name="correct_${tempCount}" value="2"></div>
-                    <div class="col"><input type="text" class="q-opt-2" placeholder="Option 3"></div>
+                    <div class="col-radio"><input type="radio" name="correct_${tempCount}" value="2" ${ans === 2 ? 'checked' : ''}></div>
+                    <div class="col"><input type="text" class="q-opt-2" placeholder="Option 3" value="${opt2}"></div>
                 </div>
                 <div class="row">
-                    <div class="col-radio"><input type="radio" name="correct_${tempCount}" value="3"></div>
-                    <div class="col"><input type="text" class="q-opt-3" placeholder="Option 4"></div>
+                    <div class="col-radio"><input type="radio" name="correct_${tempCount}" value="3" ${ans === 3 ? 'checked' : ''}></div>
+                    <div class="col"><input type="text" class="q-opt-3" placeholder="Option 4" value="${opt3}"></div>
                 </div>
             `;
             container.appendChild(div);
@@ -158,9 +187,29 @@
         }
 
         // Add first question by default
-        addQuestion();
+        document.getElementById('add-q-btn').addEventListener('click', () => addQuestion());
 
-        document.getElementById('add-q-btn').addEventListener('click', addQuestion);
+        // Init load
+        (function init() {
+            const params = new URLSearchParams(window.location.search);
+            const editId = params.get('edit');
+            if (editId) {
+                const history = JSON.parse(localStorage.getItem('quizHistory') || '[]');
+                const quiz = history.find(q => q.id == editId);
+                if (quiz) {
+                    document.getElementById('quiz-title').value = quiz.title;
+                    // Clear default
+                    container.innerHTML = '';
+                    quiz.questions.forEach(q => addQuestion(q));
+                    document.getElementById('start-custom-game-btn').textContent = "Save Changes";
+                } else {
+                    // ID not found, maybe deleted? Just default to new.
+                    addQuestion();
+                }
+            } else {
+                addQuestion();
+            }
+        })();
 
         document.getElementById('start-custom-game-btn').addEventListener('click', () => {
             // Collect Data
@@ -232,12 +281,31 @@
                 };
 
                 const history = JSON.parse(localStorage.getItem('quizHistory') || '[]');
-                history.push(newQuiz);
-                localStorage.setItem('quizHistory', JSON.stringify(history));
 
-                // Set as active for immediate play
-                localStorage.setItem('customQuiz', JSON.stringify(questions));
-                window.location.href = '/host?custom=true';
+                // Check if editing
+                const params = new URLSearchParams(window.location.search);
+                const editId = params.get('edit');
+
+                if (editId) {
+                    const index = history.findIndex(q => q.id == editId);
+                    if (index !== -1) {
+                        // Update existing
+                        history[index].title = title;
+                        history[index].questions = questions;
+                    } else {
+                        history.push(newQuiz);
+                    }
+                    localStorage.setItem('quizHistory', JSON.stringify(history));
+                    // Redirect to history after edit
+                    window.location.href = '/history.html';
+                } else {
+                    history.push(newQuiz);
+                    localStorage.setItem('quizHistory', JSON.stringify(history));
+
+                    // Set as active for immediate play
+                    localStorage.setItem('customQuiz', JSON.stringify(questions));
+                    window.location.href = '/host?custom=true';
+                }
             }
         });
 

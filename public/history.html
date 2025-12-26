@@ -74,6 +74,7 @@
                         </div>
                         <div style="display: flex; gap: 10px;">
                              <button class="btn host-btn" style="padding: 8px 20px; font-size: 0.9rem;">Host</button>
+                             <button class="btn edit-btn" style="padding: 8px 15px; font-size: 0.9rem; background: #ffa502;">✏️</button>
                              <button class="btn delete-btn" style="padding: 8px 15px; font-size: 0.9rem; background: #ff4757;">🗑️</button>
                         </div>
                     `;
@@ -86,6 +87,13 @@
                         selectedQuiz = quiz;
                         document.getElementById('modal-title').textContent = `Host "${quiz.title}"?`;
                         modal.style.display = 'block';
+                    });
+
+                    // Edit Button
+                    item.querySelector('.edit-btn').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        alert(`Editing quiz: ${quiz.title}`);
+                        window.location.href = `/create?edit=${quiz.id}`;
                     });
 
                     // Delete Button
