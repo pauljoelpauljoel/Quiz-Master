@@ -2,6 +2,7 @@ services:
   - type: web
     name: quiz-game
     env: node
+    plan: free
     buildCommand: npm install
     startCommand: node server.js
     envVars:
