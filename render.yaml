@@ -1,11 +1,10 @@
 services:
   - type: web
-    name: quiz-game-platform
+    name: quiz-game
     env: node
-    plan: free
     buildCommand: npm install
     startCommand: node server.js
     envVars:
       - key: PORT
-        value: 10000
+        value: "10000"
     autoDeploy: false
