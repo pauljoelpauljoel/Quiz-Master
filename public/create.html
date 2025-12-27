@@ -67,6 +67,23 @@
             display: flex;
             justify-content: center;
         }
+
+        .insert-btn {
+            background: rgba(46, 204, 113, 0.2);
+            border: 1px solid rgba(46, 204, 113, 0.4);
+            color: #fff;
+            width: 100%;
+            margin-top: 15px;
+            padding: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .insert-btn:hover {
+            background: rgba(46, 204, 113, 0.4);
+        }
     </style>
 </head>
 
@@ -125,7 +142,7 @@
             });
         }
 
-        function addQuestion(data = null) {
+        function addQuestion(data = null, afterElement = null) {
             const div = document.createElement('div');
             div.className = 'question-card';
             // Use temporary ID for creation, but updateQuestionNumbers will fix it immediately
@@ -178,12 +195,22 @@
                     <div class="col"><input type="text" class="q-opt-2" placeholder="Option 3" value="${opt2}"></div>
                 </div>
                 <div class="row">
-                    <div class="col-radio"><input type="radio" name="correct_${tempCount}" value="3" ${ans === 3 ? 'checked' : ''}></div>
                     <div class="col"><input type="text" class="q-opt-3" placeholder="Option 4" value="${opt3}"></div>
                 </div>
+                
+                <button class="insert-btn" onclick="addQuestion(null, this.closest('.question-card'))">+ Insert New Question Below</button>
             `;
-            container.appendChild(div);
+            if (afterElement) {
+                container.insertBefore(div, afterElement.nextSibling);
+            } else {
+                container.appendChild(div);
+            }
             updateQuestionNumbers();
+
+            // Scroll to new question if it was manually added (not loaded from data)
+            if (!data) {
+                div.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
         }
 
         // Add first question by default
